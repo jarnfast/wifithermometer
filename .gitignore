@@ -1,0 +1,9 @@
+.pioenvs
+.piolibdeps
+.pio/**
+.vscode/**
+.clang_complete
+.gcc-flags.json
+node_modules/**
+**/*.s#*
+**/*.b#*
