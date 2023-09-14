@@ -54,6 +54,8 @@ float temperature; // read temp, reset when transmitted
 // Configurable parameters
 char mqtt_server[40];
 long mqtt_port = 1883;
+char mqtt_user[50];
+char mqtt_pass[50];
 char mqtt_topic[100];
 long sleep_time = 60;
 
@@ -126,6 +128,8 @@ void setup() {
 
     WiFiManagerParameter custom_mqtt_server("mqtt_server", "MQTT Server", mqtt_server, 40);
     WiFiManagerParameter custom_mqtt_port("mqtt_port", "MQTT Port", buf_mqtt_port, 6);
+    WiFiManagerParameter custom_mqtt_user("mqtt_user", "MQTT User", mqtt_user, 50);
+    WiFiManagerParameter custom_mqtt_pass("mqtt_pass", "MQTT Password", mqtt_pass, 50);
     WiFiManagerParameter custom_mqtt_topic("mqtt_topic", "MQTT Topic", mqtt_topic, 120);
 
     WiFiManagerParameter custom_sleep_time("sleep_time", "Interval between transmits (seonds)", buf_sleep_time, 6);
@@ -140,6 +144,8 @@ void setup() {
     wifiManager.setSaveConfigCallback(saveConfigCallback);
     wifiManager.addParameter(&custom_mqtt_server);
     wifiManager.addParameter(&custom_mqtt_port);
+    wifiManager.addParameter(&custom_mqtt_user);
+    wifiManager.addParameter(&custom_mqtt_pass);
     wifiManager.addParameter(&custom_mqtt_topic);
     wifiManager.addParameter(&custom_sleep_time);
 
@@ -161,6 +167,8 @@ void setup() {
       // Convert param
       strcpy(mqtt_server, custom_mqtt_server.getValue());
       mqtt_port = strtol(custom_mqtt_port.getValue(), NULL, 0);
+      strcpy(mqtt_user, custom_mqtt_user.getValue());
+      strcpy(mqtt_pass, custom_mqtt_pass.getValue());
       strcpy(mqtt_topic, custom_mqtt_topic.getValue());
       sleep_time = strtol(custom_sleep_time.getValue(), NULL, 0);
 
@@ -216,7 +224,13 @@ bool ensureMqttConnection() {
     Serial.print(F("Attempting MQTT connection..."));
     String clientId = "WifiThermometer-" + String(ESP.getChipId());
     // Attempt to connect
-    if (mqttClient.connect(clientId.c_str())) {
+    boolean mqttConnected = false;
+    if (strlen(mqtt_user) > 0) {
+      mqttConnected = mqttClient.connect(clientId.c_str(), mqtt_user, mqtt_pass);
+    } else {
+      mqttConnected = mqttClient.connect(clientId.c_str());
+    }
+    if (mqttConnected) {
       Serial.println(F("connected"));
       return true;
     } else {
@@ -315,6 +329,8 @@ bool saveConfigurationToFlash() {
 
   json["mqtt_server"] = mqtt_server;
   json["mqtt_port"] = mqtt_port;
+  json["mqtt_user"] = mqtt_user;
+  json["mqtt_pass"] = mqtt_pass;
   json["mqtt_topic"] = mqtt_topic;
   json["sleep_time"] = sleep_time;
 
@@ -356,6 +372,8 @@ bool readConfigurationFromFlash() {
 
           strcpy(mqtt_server, json["mqtt_server"]);
           mqtt_port = json["mqtt_port"];
+          strcpy(mqtt_user, json["mqtt_user"]);
+          strcpy(mqtt_pass, json["mqtt_pass"]);
           strcpy(mqtt_topic, json["mqtt_topic"]);
           sleep_time = json["sleep_time"];
 
@@ -366,6 +384,12 @@ bool readConfigurationFromFlash() {
 
           Serial.print(F("mqtt_port = "));
           Serial.println(mqtt_port);
+
+          Serial.print(F("mqtt_user = "));
+          Serial.println(mqtt_user);
+
+          Serial.print(F("mqtt_pass = "));
+          Serial.println(mqtt_pass);
 
           Serial.print(F("mqtt_topic = "));
           Serial.println(mqtt_topic);
